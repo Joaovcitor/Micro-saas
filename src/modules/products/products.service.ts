@@ -1,7 +1,7 @@
 import type { Product } from "@prisma/client";
-import prisma from "../prisma/client";
-import type { CreateProductDTO } from "../dtos/createProductDTO";
-import type { UpdateProductDTO } from "../dtos/updateProductDTO";
+import prisma from "../../prisma/client";
+import type { CreateProductDTO } from "./product.dto";
+import type { UpdateProductDTO } from "./product.dto";
 class ProductService {
   async getAllProducts(): Promise<Product[]> {
     return await prisma.product.findMany();
@@ -13,7 +13,12 @@ class ProductService {
     });
   }
 
-  async create(data: CreateProductDTO, ownerId: number, photos: string[]) {
+  async create(
+    data: CreateProductDTO,
+    ownerId: number,
+    photos: string[],
+    categoryId: number
+  ) {
     return await prisma.product.create({
       data: {
         ...data,
@@ -22,6 +27,9 @@ class ProductService {
         },
         photos: {
           create: photos.map((url) => ({ url })),
+        },
+        category: {
+          connect: { id: categoryId },
         },
       },
       include: {

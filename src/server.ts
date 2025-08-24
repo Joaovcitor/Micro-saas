@@ -1,9 +1,9 @@
 import express, { Application } from "express";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
-import authRoutes from "./routes/auth.routes";
-import userRouter from "./routes/user.routes";
-import productRoutes from "./routes/product.routes";
+import authRoutes from "./modules/auth/auth.routes";
+import userRouter from "./modules/users/user.routes";
+import productRoutes from "./modules/products/product.routes";
 
 dotenv.config();
 
@@ -13,7 +13,7 @@ class Server {
 
   constructor() {
     this.app = express();
-    this.port = process.env.PORT || 3000;
+    this.port = process.env.PORT || 3001;
 
     this.middlewares();
     this.routes();

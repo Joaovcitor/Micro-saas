@@ -1,6 +1,6 @@
-import prisma from "../prisma/client";
+import prisma from "../../prisma/client";
 import jwt from "jsonwebtoken";
-import { comparePassword } from "../utils/utilsPassword";
+import { comparePassword } from "../../core/utils/utilsPassword";
 import type { User } from "@prisma/client";
 
 class AuthService {

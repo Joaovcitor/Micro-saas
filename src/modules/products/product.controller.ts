@@ -1,6 +1,6 @@
-import type { CreateProductDTO } from "../dtos/createProductDTO";
-import type { UpdateProductDTO } from "../dtos/updateProductDTO";
-import productsService from "../services/products.service";
+import type { CreateProductDTO } from "./product.dto";
+import type { UpdateProductDTO } from "./product.dto";
+import productsService from "./products.service";
 import { Request, Response } from "express";
 class ProductController {
   async getAllProducts(req: Request, res: Response): Promise<Response> {
@@ -27,15 +27,16 @@ class ProductController {
   }
   async create(req: Request, res: Response): Promise<Response> {
     const ownerId = req.user?.id;
+    const categoryId = parseInt(req.body.categoryId);
     if (!ownerId) {
       return res.status(400).json({ error: "Você tem que estar autenticado" });
     }
 
-    const { name, price, description } = req.body;
+    const data: CreateProductDTO = req.body;
+    const { name, description } = data;
 
     // Converter price para número
-    const priceNumber = parseFloat(price);
-    console.log(priceNumber);
+    const priceNumber = parseFloat(req.body.price);
     if (isNaN(priceNumber)) {
       return res.status(400).json({ error: "Preço inválido" });
     }
@@ -55,13 +56,14 @@ class ProductController {
     try {
       const product = await productsService.create(
         {
-          name,
+          name: name,
           price: priceNumber,
-          description,
+          description: description,
           photos, // agora passando as fotos no DTO
         },
         ownerId,
-        photos // e também aqui, caso seu service precise separadamente
+        photos,
+        categoryId
       );
 
       return res.status(201).json(product);

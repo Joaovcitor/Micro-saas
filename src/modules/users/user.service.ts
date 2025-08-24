@@ -1,7 +1,7 @@
 import type { User } from "@prisma/client";
-import prisma from "../prisma/client";
-import type { CreateUserDTO } from "../dtos/createUserDTO";
-import { generateHashPassword } from "../utils/utilsPassword";
+import prisma from "../../prisma/client";
+import type { CreateUserDTO } from "./user.dto";
+import { generateHashPassword } from "../../core/utils/utilsPassword";
 
 class UserService {
   async create(data: CreateUserDTO): Promise<User> {

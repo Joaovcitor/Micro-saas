@@ -27,6 +27,8 @@ model Product {
   owner User @relation(fields: [ownerId], references: [id])
   ownerId Int
   photos Photo[]
+  category Category @relation(fields: [categoryId], references: [id])
+  categoryId Int
   isAvailable Boolean @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -38,6 +40,14 @@ model Photo {
   product Product @relation(fields: [productId], references: [id])
   productId Int
   createdAt DateTime @default(now())
+}
+
+model Category {
+  id Int @id @default(autoincrement())
+  name String
+  products Product[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum Role {

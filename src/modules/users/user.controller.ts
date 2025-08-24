@@ -1,5 +1,5 @@
-import type { CreateUserDTO } from "../dtos/createUserDTO";
-import userService from "../services/user.service";
+import type { CreateUserDTO } from "./user.dto";
+import userService from "./user.service";
 import { Request, Response } from "express";
 
 class UserController {
