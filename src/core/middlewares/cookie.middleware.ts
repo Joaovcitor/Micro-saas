@@ -1,46 +1,51 @@
 import { Request, Response, NextFunction } from "express";
-import { cookieConfig } from "../utils/cookies.utils";
+import { cookieConfig, AuthCookies } from "../utils/cookies.utils";
 
 export const cookieMiddleware = (
   req: Request,
   res: Response,
   next: NextFunction
 ): void => {
-  // Configurações padrão para cookies
   req.cookieOptions = { ...cookieConfig.defaultOptions };
 
-  // Método helper para definir cookies de autenticação
-  res.setAuthCookies = (cookies: any) => {
-    const options = { ...req.cookieOptions };
+  res.setAuthCookies = (cookies: AuthCookies) => {
+    const { names, expiration } = cookieConfig;
 
     if (cookies.accessToken) {
-      res.cookie(cookieConfig.names.accessToken, cookies.accessToken, {
-        ...options,
-        maxAge: cookieConfig.expiration.accessToken,
+      res.cookie(names.accessToken, cookies.accessToken, {
+        ...req.cookieOptions,
+        maxAge: expiration.accessToken,
       });
     }
 
     if (cookies.refreshToken) {
-      res.cookie(cookieConfig.names.refreshToken, cookies.refreshToken, {
-        ...options,
-        maxAge: cookieConfig.expiration.refreshToken,
+      res.cookie(names.refreshToken, cookies.refreshToken, {
+        ...req.cookieOptions,
+        maxAge: expiration.refreshToken,
       });
     }
 
     if (cookies.userId) {
-      res.cookie(cookieConfig.names.userId, cookies.userId, {
-        ...options,
-        maxAge: cookieConfig.expiration.refreshToken,
+      res.cookie(names.userId, cookies.userId, {
+        ...req.cookieOptions,
+        httpOnly: false,
+        maxAge: expiration.refreshToken,
       });
     }
   };
 
-  // Método helper para limpar cookies de autenticação
   res.clearAuthCookies = () => {
-    const options = { ...req.cookieOptions, maxAge: 0 };
+    const { names } = cookieConfig;
+    const options = {
+      ...req.cookieOptions,
+      maxAge: 0,
+    };
 
-    Object.values(cookieConfig.names).forEach((name) => {
-      res.cookie(name, "", options);
+    res.cookie(names.accessToken, "", options);
+    res.cookie(names.refreshToken, "", options);
+    res.cookie(names.userId, "", {
+      ...options,
+      httpOnly: false,
     });
   };
 

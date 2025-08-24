@@ -1,10 +1,12 @@
 import { Request, Response } from "express";
 import { AuthService } from "./auth.service";
 import {
+  getAuthCookies,
   setAuthCookies,
   clearAuthCookies,
-  getAuthCookies,
+  AuthCookies,
 } from "../../core/utils/cookies.utils";
+import prisma from "../../prisma/client";
 
 export class AuthController {
   static async login(req: Request, res: Response): Promise<void> {
@@ -36,6 +38,49 @@ export class AuthController {
       res.status(401).json({
         success: false,
         message: error.message || "Erro no login",
+      });
+    }
+  }
+
+  static async getCurrentUser(req: Request, res: Response): Promise<void> {
+    try {
+      const cookies = getAuthCookies(req.cookies);
+      if (!cookies.accessToken) {
+        res.status(401).json({
+          success: false,
+          message: "Token de acesso não encontrado",
+        });
+        return;
+      }
+
+      const payload = await AuthService.validateAccessToken(
+        cookies.accessToken
+      );
+      const user = await prisma.user.findUnique({
+        where: { id: parseInt(payload.userId) },
+        select: { id: true, email: true, name: true, role: true },
+      });
+
+      if (!user) {
+        res
+          .status(404)
+          .json({ success: false, message: "Usuário não encontrado" });
+        return;
+      }
+
+      res.json({
+        success: true,
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        },
+      });
+    } catch (e: any) {
+      res.status(401).json({
+        success: false,
+        message: e.message || "Token inválido",
       });
     }
   }
@@ -77,8 +122,7 @@ export class AuthController {
       const { accessToken, newRefreshToken } =
         await AuthService.refreshAccessToken(cookies.refreshToken);
 
-      // Atualizar cookies
-      const cookieData: any = { accessToken };
+      const cookieData: AuthCookies = { accessToken };
       if (newRefreshToken) {
         cookieData.refreshToken = newRefreshToken;
       }
@@ -95,36 +139,6 @@ export class AuthController {
       res.status(401).json({
         success: false,
         message: error.message || "Não foi possível renovar o token",
-      });
-    }
-  }
-
-  // Middleware para verificar autenticação
-  static async authenticate(
-    req: Request,
-    res: Response,
-    next: Function
-  ): Promise<void> {
-    try {
-      const cookies = getAuthCookies(req.cookies);
-
-      if (!cookies.accessToken) {
-        res.status(401).json({
-          success: false,
-          message: "Token de acesso não fornecido",
-        });
-        return;
-      }
-
-      const payload = await AuthService.validateAccessToken(
-        cookies.accessToken
-      );
-      (req as any).user = payload; // Adiciona usuário à request
-      next();
-    } catch (error: any) {
-      res.status(401).json({
-        success: false,
-        message: "Token inválido ou expirado",
       });
     }
   }

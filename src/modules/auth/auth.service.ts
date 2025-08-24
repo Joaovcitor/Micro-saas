@@ -12,11 +12,11 @@ export class AuthService {
   static async validateUser(
     email: string,
     password: string
-  ): Promise<{ id: string; email: string } | null> {
+  ): Promise<{ id: string; email: string; role: string } | null> {
     try {
       const user = await prisma.user.findUnique({
         where: { email },
-        select: { id: true, email: true, password: true },
+        select: { id: true, email: true, role: true, password: true },
       });
 
       if (!user) {
@@ -29,7 +29,7 @@ export class AuthService {
         return null;
       }
 
-      return { id: user.id.toString(), email: user.email };
+      return { id: user.id.toString(), email: user.email, role: user.role };
     } catch (error) {
       console.error("Erro ao validar usuário:", error);
       return null;
@@ -40,7 +40,7 @@ export class AuthService {
     email: string,
     password: string
   ): Promise<{
-    user: { id: string; email: string };
+    user: { id: string; email: string; role: string };
     tokens: { accessToken: string; refreshToken: string };
   }> {
     const user = await this.validateUser(email, password);
@@ -55,7 +55,6 @@ export class AuthService {
       email: user.email,
     });
 
-    // Armazenar refresh token no banco
     await prisma.user.update({
       where: { id: parseInt(user.id) },
       data: { refreshToken },
