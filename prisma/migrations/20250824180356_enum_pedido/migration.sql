@@ -1,0 +1,2 @@
+-- CreateEnum
+CREATE TYPE "public"."StatusPedido" AS ENUM ('EM_PREPARO', 'PRONTO', 'PARA_RETIRAR', 'EM_TRANSPORTE', 'ENTREGUE', 'CANCELADO');

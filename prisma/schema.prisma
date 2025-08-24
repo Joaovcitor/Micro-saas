@@ -55,3 +55,12 @@ enum Role {
   USER
   ADMIN
 }
+
+enum StatusPedido {
+  EM_PREPARO
+  PRONTO
+  PARA_RETIRAR
+  EM_TRANSPORTE
+  ENTREGUE
+  CANCELADO
+}
