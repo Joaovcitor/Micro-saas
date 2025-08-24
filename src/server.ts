@@ -7,6 +7,7 @@ import authRoutes from "./modules/auth/auth.routes";
 import userRouter from "./modules/users/user.routes";
 import productRoutes from "./modules/products/product.routes";
 import { cookieMiddleware } from "./core/middlewares/cookie.middleware";
+import categoryRouter from "./modules/category/category.routes";
 
 dotenv.config();
 
@@ -49,6 +50,7 @@ class Server {
     this.app.use("/auth", authRoutes);
     this.app.use("/users", userRouter);
     this.app.use("/products", productRoutes);
+    this.app.use("/category", categoryRouter);
   }
 
   public listen(): void {
