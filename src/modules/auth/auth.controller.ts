@@ -23,7 +23,7 @@ export class AuthController {
 
       setAuthCookies(res, {
         accessToken: tokens.accessToken,
-
+        refreshToken: tokens.refreshToken,
         userId: user.id,
       });
 
@@ -74,21 +74,57 @@ export class AuthController {
         return;
       }
 
-      const { accessToken } = await AuthService.refreshAccessToken(
-        cookies.refreshToken
-      );
+      const { accessToken, newRefreshToken } =
+        await AuthService.refreshAccessToken(cookies.refreshToken);
 
-      setAuthCookies(res, { accessToken });
+      // Atualizar cookies
+      const cookieData: any = { accessToken };
+      if (newRefreshToken) {
+        cookieData.refreshToken = newRefreshToken;
+      }
+
+      setAuthCookies(res, cookieData);
 
       res.json({
         success: true,
         accessToken,
+        newRefreshToken: newRefreshToken || undefined,
       });
     } catch (error: any) {
       clearAuthCookies(res);
       res.status(401).json({
         success: false,
         message: error.message || "Não foi possível renovar o token",
+      });
+    }
+  }
+
+  // Middleware para verificar autenticação
+  static async authenticate(
+    req: Request,
+    res: Response,
+    next: Function
+  ): Promise<void> {
+    try {
+      const cookies = getAuthCookies(req.cookies);
+
+      if (!cookies.accessToken) {
+        res.status(401).json({
+          success: false,
+          message: "Token de acesso não fornecido",
+        });
+        return;
+      }
+
+      const payload = await AuthService.validateAccessToken(
+        cookies.accessToken
+      );
+      (req as any).user = payload; // Adiciona usuário à request
+      next();
+    } catch (error: any) {
+      res.status(401).json({
+        success: false,
+        message: "Token inválido ou expirado",
       });
     }
   }

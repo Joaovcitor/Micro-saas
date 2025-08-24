@@ -1,13 +1,12 @@
 import {
   signAccessToken,
+  signRefreshToken,
   verifyRefreshToken,
   TokenPayload,
   verifyAccessToken,
 } from "../../core/utils/jwt.utils";
 import bcrypt from "bcrypt";
 import prisma from "../../prisma/client";
-
-const activeRefreshTokens = new Set<string>();
 
 export class AuthService {
   static async validateUser(
@@ -24,7 +23,7 @@ export class AuthService {
         return null;
       }
 
-      const isPasswordValid = bcrypt.compare(password, user.password);
+      const isPasswordValid = await bcrypt.compare(password, user.password);
 
       if (!isPasswordValid) {
         return null;
@@ -42,7 +41,7 @@ export class AuthService {
     password: string
   ): Promise<{
     user: { id: string; email: string };
-    tokens: { accessToken: string };
+    tokens: { accessToken: string; refreshToken: string };
   }> {
     const user = await this.validateUser(email, password);
 
@@ -51,37 +50,96 @@ export class AuthService {
     }
 
     const accessToken = signAccessToken({ userId: user.id, email: user.email });
+    const refreshToken = signRefreshToken({
+      userId: user.id,
+      email: user.email,
+    });
+
+    // Armazenar refresh token no banco
+    await prisma.user.update({
+      where: { id: parseInt(user.id) },
+      data: { refreshToken },
+    });
 
     return {
       user,
-      tokens: { accessToken },
+      tokens: { accessToken, refreshToken },
     };
   }
 
   static async logout(refreshToken: string): Promise<void> {
-    activeRefreshTokens.delete(refreshToken);
+    try {
+      // Encontrar usuário pelo refresh token e removê-lo
+      const user = await prisma.user.findFirst({
+        where: { refreshToken },
+      });
+
+      if (user) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { refreshToken: null },
+        });
+      }
+    } catch (error) {
+      console.error("Erro no logout:", error);
+    }
   }
 
   static async refreshAccessToken(
     refreshToken: string
-  ): Promise<{ accessToken: string }> {
-    // Verificar se o refresh token está ativo
-    if (!activeRefreshTokens.has(refreshToken)) {
-      throw new Error("Refresh token inválido");
-    }
-
+  ): Promise<{ accessToken: string; newRefreshToken?: string }> {
     try {
+      // Verificar se o refresh token existe no banco
+      const user = await prisma.user.findFirst({
+        where: { refreshToken },
+      });
+
+      if (!user) {
+        throw new Error("Refresh token inválido");
+      }
+
+      // Verificar validade do token
       const payload = verifyRefreshToken(refreshToken);
+
+      // Gerar novo access token
       const accessToken = signAccessToken({
         userId: payload.userId,
         email: payload.email,
       });
 
+      // Opcional: Rotacionar refresh token (mais seguro)
+      const shouldRotate = false; // Defina sua política de rotação
+
+      if (shouldRotate) {
+        const newRefreshToken = signRefreshToken({
+          userId: payload.userId,
+          email: payload.email,
+        });
+
+        // Atualizar no banco
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { refreshToken: newRefreshToken },
+        });
+
+        return { accessToken, newRefreshToken };
+      }
+
       return { accessToken };
     } catch (error) {
-      // Se o refresh token estiver inválido, remover da lista
-      activeRefreshTokens.delete(refreshToken);
-      throw new Error("Refresh token expirado");
+      // Se o refresh token estiver inválido, remover do banco
+      const user = await prisma.user.findFirst({
+        where: { refreshToken },
+      });
+
+      if (user) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { refreshToken: null },
+        });
+      }
+
+      throw new Error("Refresh token expirado ou inválido");
     }
   }
 
