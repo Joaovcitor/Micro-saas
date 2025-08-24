@@ -1,45 +1,53 @@
-import { Request, Response, type NextFunction } from "express";
-import jwt from "jsonwebtoken";
-import prisma from "../../prisma/client";
-import { UserPayload } from "../types/auth";
-interface JwtPayload {
-  id: number;
-}
+import { Request, Response, NextFunction } from "express";
+import { getAuthCookies } from "../utils/cookies.utils";
+import { AuthService } from "../../modules/auth/auth.service";
 
-export async function isAuthenticated(
+export const authMiddleware = async (
   req: Request,
   res: Response,
   next: NextFunction
-) {
-  const { jwt: token } = req.cookies;
-  if (!token) {
-    return res.status(401).json({ error: "Token não fornecido" });
-  }
+): Promise<void> => {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as JwtPayload;
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.id },
-      select: { id: true, name: true, role: true },
-    });
-    if (!user) {
-      return res.status(401).json({ error: "Usuário do token não encontrado" });
+    const cookies = getAuthCookies(req.cookies);
+
+    if (!cookies.accessToken) {
+      res.status(401).json({ error: "Token de acesso necessário" });
+      return;
     }
-    req.user = user;
+
+    const payload = await AuthService.validateAccessToken(cookies.accessToken);
+    req.user = {
+      userId: payload.userId,
+      email: payload.email,
+    };
+
     next();
   } catch (error: any) {
-    if (error.name === "TokenExpiredError") {
-      return res
-        .status(401)
-        .json({ error: "Token expirado. Por favor, faça login novamente." });
-    }
-    if (error.name === "JsonWebTokenError") {
-      return res
-        .status(401)
-        .json({ error: "Token inválido (assinatura ou formato incorreto)." });
-    }
-    console.error("Erro inesperado no middleware:", error);
-    return res
-      .status(500)
-      .json({ error: "Erro interno no servidor de autenticação." });
+    res.status(401).json({ error: "Token inválido ou expirado" });
   }
-}
+};
+
+export const optionalAuthMiddleware = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const cookies = getAuthCookies(req.cookies);
+
+    if (cookies.accessToken) {
+      const payload = await AuthService.validateAccessToken(
+        cookies.accessToken
+      );
+      req.user = {
+        userId: payload.userId,
+        email: payload.email,
+      };
+    }
+
+    next();
+  } catch {
+    // Se o token for inválido, continua sem userId
+    next();
+  }
+};

@@ -26,7 +26,7 @@ class ProductController {
     }
   }
   async create(req: Request, res: Response): Promise<Response> {
-    const ownerId = req.user?.id;
+    const ownerId = parseInt(req.body.ownerId);
     const categoryId = parseInt(req.body.categoryId);
     if (!ownerId) {
       return res.status(400).json({ error: "Você tem que estar autenticado" });
