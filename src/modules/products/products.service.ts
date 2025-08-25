@@ -4,12 +4,21 @@ import type { CreateProductDTO } from "./product.dto";
 import type { UpdateProductDTO } from "./product.dto";
 class ProductService {
   async getAllProducts(): Promise<Product[]> {
-    return await prisma.product.findMany();
+    const products = await prisma.product.findMany({
+      include: {
+        photos: true,
+      },
+      orderBy: { createdAt: "asc" },
+    });
+    return products;
   }
 
   async getProductById(id: number): Promise<Product | null> {
     return await prisma.product.findUnique({
       where: { id },
+      include: {
+        photos: true,
+      },
     });
   }
 
@@ -39,6 +48,15 @@ class ProductService {
   }
 
   async update(id: number, data: UpdateProductDTO): Promise<Product> {
+    if (!id) {
+      throw new Error("Id inválido!");
+    }
+    const product = await prisma.product.findUnique({
+      where: { id },
+    });
+    if (!product) {
+      throw new Error("Produto não encontrado!");
+    }
     return await prisma.product.update({
       where: { id },
       data: {
