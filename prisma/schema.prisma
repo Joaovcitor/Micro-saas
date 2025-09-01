@@ -15,6 +15,7 @@ model User {
   password String
   role Role @default(USER)
   products Product[]
+  orders Order[]
   refreshToken String? 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -29,6 +30,7 @@ model Product {
   ownerId Int
   photos Photo[]
   category Category @relation(fields: [categoryId], references: [id])
+  orderItems OrderItem[]
   categoryId Int
   isAvailable Boolean @default(true)
   createdAt DateTime @default(now())
@@ -47,6 +49,30 @@ model Category {
   id Int @id @default(autoincrement())
   name String
   products Product[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Order {
+  id Int @id @default(autoincrement())
+  user User @relation(fields: [userId], references: [id])
+  userId Int
+  orderItems OrderItem[]
+  totalPrice Float
+  status StatusPedido @default(EM_PREPARO)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model OrderItem {
+  id Int @id @default(autoincrement())
+  orderId Int
+  order Order @relation(fields: [orderId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+  productId Int
+  quantity Int @default(1)
+  subtotal Float @default(0)
+  price Float @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

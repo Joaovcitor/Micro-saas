@@ -8,7 +8,8 @@ import userRouter from "./modules/users/user.routes";
 import productRoutes from "./modules/products/product.routes";
 import { cookieMiddleware } from "./core/middlewares/cookie.middleware";
 import categoryRouter from "./modules/category/category.routes";
-
+import orderRouter from "./modules/orders/order.routes";
+import path from "path";
 dotenv.config();
 
 class Server {
@@ -33,9 +34,28 @@ class Server {
       })
     );
 
-    // Body parsing
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
+
+    const uploadsPath = path.join(process.cwd(), "src", "uploads");
+    console.log("Serving static files from:", uploadsPath);
+
+    this.app.use("/uploads", (req, res, next) => {
+      res.removeHeader("Cross-Origin-Resource-Policy");
+      res.header("Cross-Origin-Resource-Policy", "cross-origin");
+      res.header(
+        "Access-Control-Allow-Origin",
+        process.env.FRONTEND_URL || "http://localhost:3000"
+      );
+      res.header("Access-Control-Allow-Credentials", "true");
+      res.header(
+        "Access-Control-Allow-Headers",
+        "Origin, X-Requested-With, Content-Type, Accept"
+      );
+      next();
+    });
+
+    this.app.use("/uploads", express.static(uploadsPath));
 
     // Cookies
     this.app.use(
@@ -51,6 +71,7 @@ class Server {
     this.app.use("/users", userRouter);
     this.app.use("/products", productRoutes);
     this.app.use("/category", categoryRouter);
+    this.app.use("/orders", orderRouter);
   }
 
   public listen(): void {

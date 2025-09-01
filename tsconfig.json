@@ -9,5 +9,9 @@
     "strict": true,
     "skipLibCheck": true,
     "typeRoots": ["src/core/types", "./node_modules/@types"]
-  }
+  },
+  "include": [
+    "src/**/*",
+    "src/uploads/**/*" // Garante que a pasta uploads seja incluída
+  ]
 }
