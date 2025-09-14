@@ -42,6 +42,19 @@ class CategoryController {
       return res.status(400).json({ message: error.message });
     }
   }
+
+  async getProductsWithCategory(
+    req: Request,
+    res: Response
+  ): Promise<Response> {
+    try {
+      const { id } = req.params;
+      const category = await categoryService.productsWithCategory(Number(id));
+      return res.status(200).json(category);
+    } catch (error: any) {
+      return res.status(400).json({ message: error.message });
+    }
+  }
 }
 
 export default new CategoryController();

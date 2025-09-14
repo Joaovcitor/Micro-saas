@@ -18,6 +18,7 @@ class ProductService {
       where: { id },
       include: {
         photos: true,
+        productCustomizations: true,
       },
     });
   }
@@ -51,17 +52,37 @@ class ProductService {
     if (!id) {
       throw new Error("Id inválido!");
     }
+
+    if (!data) {
+      throw new Error("Dados para atualização não fornecidos!");
+    }
+
     const product = await prisma.product.findUnique({
       where: { id },
     });
     if (!product) {
       throw new Error("Produto não encontrado!");
     }
+
+    const updateData: any = {};
+
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.description !== undefined)
+      updateData.description = data.description;
+    if (data.price !== undefined) updateData.price = data.price;
+    if (data.isAvailable !== undefined)
+      updateData.isAvailable = data.isAvailable;
+
+    if (data.photos && data.photos.length > 0) {
+      updateData.photos = {
+        deleteMany: {}, // Remove fotos existentes
+        create: data.photos.map((url) => ({ url })),
+      };
+    }
+
     return await prisma.product.update({
       where: { id },
-      data: {
-        ...data,
-      },
+      data: updateData,
     });
   }
 }

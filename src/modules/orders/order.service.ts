@@ -1,11 +1,60 @@
+import { StatusPedido } from "./../../../node_modules/.prisma/client/index.d";
+import type { MetodoPagamento } from "@prisma/client";
 import prisma from "../../prisma/client";
 import type {
   CreateOrderDto,
+  OrderCustomizationItems,
   OrderItemDto,
   OrderResponseDto,
+  UpdateOrderStatusDto,
 } from "./order.dto";
 
 class OrderService {
+  async getAllOrders(): Promise<OrderResponseDto[]> {
+    const orders = await prisma.order.findMany({
+      include: {
+        orderItems: {
+          include: {
+            product: {
+              select: {
+                name: true,
+                category: true,
+              },
+            },
+          },
+        },
+        user: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+    return orders.map((order) => this.formatOrderResponse(order));
+  }
+  async getOrderById(orderId: number): Promise<OrderResponseDto> {
+    const order = await prisma.order.findUnique({
+      where: {
+        id: orderId,
+      },
+      include: {
+        orderItems: {
+          include: {
+            product: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+      },
+    });
+    if (!order) {
+      throw new Error("Pedido não encontrado");
+    }
+    return this.formatOrderResponse(order);
+  }
   async createOrder(
     userId: number,
     createOrderDto: CreateOrderDto
@@ -20,12 +69,27 @@ class OrderService {
           userId: userId,
           status: "EM_PREPARO",
           totalPrice: total,
+          enderecoEntrega: createOrderDto.enderecoEntrega,
+          metodoPagamento: createOrderDto.metodoPagamento as MetodoPagamento,
           orderItems: {
             create: validItems.map((item) => ({
-              productId: item.productId,
+              product: {
+                connect: {
+                  id: item.productId,
+                },
+              },
               quantity: item.quantity,
               subtotal: item.quantity * item.price,
               price: item.price,
+              customizations: {
+                create:
+                  item.customizations?.map((customization) => ({
+                    optionId: customization.optionId,
+                    price: customization.price,
+                    name: customization.name || "",
+                    quantity: customization.quantity,
+                  })) || [],
+              },
             })),
           },
         },
@@ -37,6 +101,18 @@ class OrderService {
                   name: true,
                 },
               },
+              customizations: {
+                select: {
+                  optionId: true,
+                  price: true,
+                },
+              },
+            },
+          },
+          user: {
+            select: {
+              name: true,
+              email: true,
             },
           },
         },
@@ -70,10 +146,55 @@ class OrderService {
             createdAt: "desc",
           },
         },
+        user: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
       },
     });
 
     return orders.map((order) => this.formatOrderResponse(order));
+  }
+
+  async updateOrderStatus(orderId: number, status: UpdateOrderStatusDto) {
+    if (!orderId) {
+      throw new Error("Id do pedido inválido");
+    }
+    const order = await prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) {
+      throw new Error("Pedido não encontrado");
+    }
+    return await prisma.order.update({
+      where: { id: orderId },
+      data: { status: status.status as StatusPedido },
+    });
+  }
+
+  private async validateCustomizations(items: OrderCustomizationItems[]) {
+    const optionIds = items.map((item) => item.optionId);
+    const options = await prisma.customizationOption.findMany({
+      where: {
+        id: { in: optionIds },
+      },
+    });
+    let total = 0;
+    const validItems = [];
+
+    for (const item of items) {
+      const option = options.find((o) => o.id === item.optionId);
+      if (!option) {
+        throw new Error(`Opção ${item.optionId} não encontrada`);
+      }
+
+      if (option.price !== item.price) {
+        throw new Error(`Preço da opção ${item.optionId} não corresponde`);
+      }
+      total += item.price * item.quantity;
+      validItems.push(item);
+    }
+    return { validItems, total };
   }
 
   private async validateOrderItems(items: OrderItemDto[]): Promise<{
@@ -101,12 +222,22 @@ class OrderService {
         );
       }
 
-      const itemTotal = product.price * item.quantity;
+      let customizations: OrderCustomizationItems[] = [];
+      let totalCustomizations = 0;
+      if (item.customizations && item.customizations.length > 0) {
+        const { validItems: validateCustomizations, total: total } =
+          await this.validateCustomizations(item.customizations);
+        customizations = validateCustomizations;
+        totalCustomizations = total;
+      }
+      const itemTotal = product.price * item.quantity + totalCustomizations;
       total += itemTotal;
 
       validItems.push({
         ...item,
         price: product.price,
+        customizations,
+        totalCustomizations,
       });
     }
 
@@ -121,6 +252,7 @@ class OrderService {
       totalPrice: order.totalPrice,
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
+      metodoPagamento: order.metodoPagamento,
       orderItems: order.orderItems.map((item: any) => ({
         id: item.id,
         productId: item.productId,
@@ -129,6 +261,10 @@ class OrderService {
         price: item.price,
         subtotal: item.subtotal,
       })),
+      user: {
+        name: order.user.name,
+        email: order.user.email,
+      },
     };
   }
 }

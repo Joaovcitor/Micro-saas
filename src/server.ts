@@ -10,6 +10,7 @@ import { cookieMiddleware } from "./core/middlewares/cookie.middleware";
 import categoryRouter from "./modules/category/category.routes";
 import orderRouter from "./modules/orders/order.routes";
 import path from "path";
+import customProductRouter from "./modules/customProduct/custom.routes";
 dotenv.config();
 
 class Server {
@@ -71,6 +72,7 @@ class Server {
     this.app.use("/users", userRouter);
     this.app.use("/products", productRoutes);
     this.app.use("/category", categoryRouter);
+    this.app.use("/custom", customProductRouter);
     this.app.use("/orders", orderRouter);
   }
 

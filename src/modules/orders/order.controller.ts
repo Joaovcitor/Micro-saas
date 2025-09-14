@@ -12,6 +12,37 @@ class OrderController {
   constructor() {
     this.orderService = new OrderService();
   }
+  getOrderById = async (req: Request, res: Response): Promise<void> => {
+    const id = req.params.id;
+    try {
+      const order = await this.orderService.getOrderById(Number(id));
+      res.status(200).json({
+        message: "Pedido encontrado com sucesso",
+        data: order,
+      });
+    } catch (e: any) {
+      console.log(e);
+      res.status(500).json({
+        message: "Erro ao buscar pedido",
+        error: e.message,
+      });
+    }
+  };
+  getAllOrders = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const orders = await this.orderService.getAllOrders();
+      res.status(200).json({
+        message: "Pedidos encontrados com sucesso",
+        data: orders,
+      });
+    } catch (e: any) {
+      console.log(e);
+      res.status(500).json({
+        message: "Erro ao buscar pedidos",
+        error: e.message,
+      });
+    }
+  };
   getAllOrdersOfUser = async (req: Request, res: Response): Promise<void> => {
     try {
       const userId = req.user?.userId;
@@ -24,6 +55,26 @@ class OrderController {
       console.log(e);
       res.status(500).json({
         message: "Erro ao buscar pedidos",
+        error: e.message,
+      });
+    }
+  };
+  updateOrder = async (req: Request, res: Response): Promise<void> => {
+    const id = parseInt(req.params.id);
+    const updateOrderStatusDto: UpdateOrderStatusDto = req.body;
+    try {
+      const order = await this.orderService.updateOrderStatus(
+        id,
+        updateOrderStatusDto
+      );
+      res.status(200).json({
+        message: "Pedido atualizado com sucesso",
+        data: order,
+      });
+    } catch (e: any) {
+      console.log(e);
+      res.status(500).json({
+        message: "Erro ao atualizar pedido",
         error: e.message,
       });
     }

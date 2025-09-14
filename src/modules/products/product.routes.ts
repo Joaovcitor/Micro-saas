@@ -12,6 +12,11 @@ router.post(
 );
 router.get("/", productController.getAllProducts);
 router.get("/:id", productController.getProductById);
-router.patch("/:id", authMiddleware, productController.update);
+router.patch(
+  "/:id",
+  authMiddleware,
+  upload.array("photos", 5),
+  productController.update
+);
 
 export default router;

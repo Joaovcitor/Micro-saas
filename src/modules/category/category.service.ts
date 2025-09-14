@@ -51,6 +51,25 @@ class CategoryService {
     }
     return category;
   }
+
+  async productsWithCategory(id: number): Promise<Category> {
+    const category = await prisma.category.findUnique({
+      where: {
+        id,
+      },
+      include: {
+        products: {
+          include: {
+            photos: true,
+          },
+        },
+      },
+    });
+    if (!category) {
+      throw new Error("Categoria não encontrada!");
+    }
+    return category;
+  }
 }
 
 export default new CategoryService();

@@ -5,6 +5,7 @@ const categoryRouter = Router();
 categoryRouter.post("/", categoryController.createCategory);
 categoryRouter.patch("/:id", categoryController.updateCategory);
 categoryRouter.get("/", categoryController.getAllCategories);
+categoryRouter.get("/products/:id", categoryController.getProductsWithCategory);
 categoryRouter.get("/:id", categoryController.getCategoryById);
 
 export default categoryRouter;

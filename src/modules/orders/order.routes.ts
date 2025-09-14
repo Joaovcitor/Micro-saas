@@ -9,5 +9,8 @@ orderRouter.use(authMiddleware);
 
 orderRouter.post("/", orderController.createOrder);
 orderRouter.get("/", orderController.getAllOrdersOfUser);
+orderRouter.get("/all", orderController.getAllOrders);
+orderRouter.get("/:id", orderController.getOrderById);
+orderRouter.put("/:id", orderController.updateOrder);
 
 export default orderRouter;

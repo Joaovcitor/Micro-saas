@@ -17,6 +17,7 @@ model User {
   products Product[]
   orders Order[]
   refreshToken String? 
+  stripeCustomerId String? @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -31,8 +32,10 @@ model Product {
   photos Photo[]
   category Category @relation(fields: [categoryId], references: [id])
   orderItems OrderItem[]
+  productCustomizations ProductCustomization[]
   categoryId Int
   isAvailable Boolean @default(true)
+  quantity Int @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -60,6 +63,10 @@ model Order {
   orderItems OrderItem[]
   totalPrice Float
   status StatusPedido @default(EM_PREPARO)
+  enderecoEntrega String?
+  metodoPagamento MetodoPagamento @default(PIX)
+  paymentStatus PaymentStatus @default(PENDING)
+  paymentIntentId String? @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -73,10 +80,72 @@ model OrderItem {
   quantity Int @default(1)
   subtotal Float @default(0)
   price Float @default(0)
+  customizations OrderItemCustomization[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
+
+model Discount {
+  id Int @id @default(autoincrement())
+  name String
+  type DiscountType @default(PERCENTAGE)
+  value Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ProductCustomization {
+  id Int @id @default(autoincrement())
+  product Product @relation(fields: [productId], references: [id])
+  productId Int
+  name String
+  description String?
+  isRequired Boolean @default(false)
+  minOptions Int @default(0)
+  maxOptions Int @default(5)
+  options CustomizationOption[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CustomizationOption {
+  id          Int       @id @default(autoincrement())
+  customization ProductCustomization @relation(fields: [customizationId], references: [id])
+  customizationId Int
+  name        String 
+  description String?
+  price       Float     @default(0)
+  isAvailable Boolean   @default(true)
+  maxQuantity Int       @default(1)
+  order       Int       @default(0)
+  orderItemCustomization OrderItemCustomization[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("customization_options")
+}
+
+model OrderItemCustomization {
+  id          Int       @id @default(autoincrement())
+  orderItem   OrderItem @relation(fields: [orderItemId], references: [id])
+  orderItemId Int
+  option      CustomizationOption @relation(fields: [optionId], references: [id])
+  optionId    Int
+  quantity    Int       @default(1)
+  price       Float
+  name        String   
+  createdAt   DateTime  @default(now())
+
+  @@map("order_item_customizations")
+}
+
+// ENUMS
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
 enum Role {
   USER
   ADMIN
@@ -90,4 +159,18 @@ enum StatusPedido {
   EM_TRANSPORTE
   ENTREGUE
   CANCELADO
+}
+
+enum MetodoPagamento {
+  PIX
+  CARTAO
+  DINHEIRO
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+  CANCELED
 }
