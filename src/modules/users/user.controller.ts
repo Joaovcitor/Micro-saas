@@ -1,3 +1,4 @@
+import { createStripeCustomer } from "../../utils/stripe";
 import type { CreateUserDTO } from "./user.dto";
 import userService from "./user.service";
 import { Request, Response } from "express";
@@ -5,6 +6,11 @@ import { Request, Response } from "express";
 class UserController {
   async create(req: Request, res: Response) {
     const data: CreateUserDTO = req.body;
+    const customer = await createStripeCustomer({
+      email: data.email,
+      name: data.name,
+    });
+    console.log(customer);
 
     // Validação básica
     if (!data.name || !data.email || !data.password) {
@@ -15,7 +21,10 @@ class UserController {
     }
 
     try {
-      const user = await userService.create(data);
+      const user = await userService.create({
+        ...data,
+        stripeCustomerId: customer.id,
+      });
       res.status(201).json({
         success: true,
         message: "Usuário criado com sucesso",

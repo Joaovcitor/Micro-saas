@@ -18,6 +18,7 @@ class UserService {
       data: {
         ...data,
         password: hashPassword,
+        stripeCustomerId: data.stripeCustomerId,
       },
       select: {
         id: true,

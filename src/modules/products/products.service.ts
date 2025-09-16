@@ -1,4 +1,4 @@
-import type { Product } from "@prisma/client";
+import type { Product, ProductType } from "@prisma/client";
 import prisma from "../../prisma/client";
 import type { CreateProductDTO } from "./product.dto";
 import type { UpdateProductDTO } from "./product.dto";
@@ -29,9 +29,13 @@ class ProductService {
     photos: string[],
     categoryId: number
   ) {
+    if (data.type === "PHYSICAL" && data.stock === null) {
+      throw new Error("Produto do tipo físico deve ter estoque!");
+    }
     return await prisma.product.create({
       data: {
         ...data,
+        type: data.type as ProductType,
         owner: {
           connect: { id: ownerId },
         },

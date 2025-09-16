@@ -11,6 +11,8 @@ import categoryRouter from "./modules/category/category.routes";
 import orderRouter from "./modules/orders/order.routes";
 import path from "path";
 import customProductRouter from "./modules/customProduct/custom.routes";
+import checkoutRouter from "./modules/checkout/checkout.routes";
+import { WebhookRoute } from "./modules/webhooks/webhooks.routes";
 dotenv.config();
 
 class Server {
@@ -20,7 +22,7 @@ class Server {
   constructor() {
     this.app = express();
     this.port = process.env.PORT || 3001;
-
+    this.webhook();
     this.middlewares();
     this.routes();
     this.listen();
@@ -74,6 +76,13 @@ class Server {
     this.app.use("/category", categoryRouter);
     this.app.use("/custom", customProductRouter);
     this.app.use("/orders", orderRouter);
+    this.app.use("/checkout", checkoutRouter);
+  }
+
+  private webhook(): void {
+    const router = express.Router();
+    WebhookRoute.create(router);
+    this.app.use("/data", router);
   }
 
   public listen(): void {

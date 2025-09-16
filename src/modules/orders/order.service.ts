@@ -64,6 +64,22 @@ class OrderService {
         createOrderDto.items
       );
 
+      for (const item of validItems) {
+        const product = await prisma.product.findUnique({
+          where: {
+            id: item.productId,
+          },
+        });
+        if (product?.type === "PHYSICAL" && product.stock !== null) {
+          if (product.stock < item.quantity) {
+            throw new Error(
+              `Quantidade insuficiente para o produto ${product.name}`
+            );
+          }
+          await this.updateProduct(product.id, item.quantity);
+        }
+      }
+
       const order = await prisma.order.create({
         data: {
           userId: userId,
@@ -197,6 +213,17 @@ class OrderService {
     return { validItems, total };
   }
 
+  private async updateProduct(id: number, stock: number) {
+    await prisma.product.update({
+      where: { id },
+      data: {
+        stock: {
+          decrement: stock,
+        },
+      },
+    });
+  }
+
   private async validateOrderItems(items: OrderItemDto[]): Promise<{
     validItems: Array<OrderItemDto & { price: number }>;
     total: number;
@@ -207,7 +234,7 @@ class OrderService {
         id: { in: productIds },
         isAvailable: true,
       },
-      select: { id: true, price: true, name: true },
+      select: { id: true, price: true, name: true, type: true, stock: true },
     });
 
     let total = 0;
@@ -220,6 +247,14 @@ class OrderService {
         throw new Error(
           `Produto ${item.productId} não encontrado ou indisponível`
         );
+      }
+
+      if (
+        product.type === "PHYSICAL" &&
+        product.stock !== null &&
+        item.quantity > product.stock
+      ) {
+        throw new Error("Quantidade invalida!");
       }
 
       let customizations: OrderCustomizationItems[] = [];

@@ -34,10 +34,11 @@ class ProductController {
     }
 
     const data: CreateProductDTO = req.body;
-    const { name, description, quantity } = data;
+    const { name, description, stock, type } = data;
 
     // Converter price para número
     const priceNumber = parseFloat(req.body.price);
+    const stockNumber = parseFloat(req.body.stock);
     if (isNaN(priceNumber)) {
       return res.status(400).json({ error: "Preço inválido" });
     }
@@ -61,7 +62,8 @@ class ProductController {
           price: priceNumber,
           description: description,
           photos,
-          quantity,
+          stock: stockNumber,
+          type,
         },
         ownerId,
         photos,
