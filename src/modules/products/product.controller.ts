@@ -13,7 +13,7 @@ class ProductController {
   }
 
   async getProductById(req: Request, res: Response): Promise<Response> {
-    const id = parseInt(req.params.id, 10);
+    const id = req.params.id;
     try {
       const product = await productsService.getProductById(id);
       if (!product) {
@@ -27,10 +27,16 @@ class ProductController {
     }
   }
   async create(req: Request, res: Response): Promise<Response> {
-    const ownerId = parseInt(req.user?.userId as string);
-    const categoryId = parseInt(req.body.categoryId);
+    const ownerId = req.user?.userId;
+    const storeId = req.user?.storeId;
+    const categoryId = req.body.categoryId;
     if (!ownerId) {
       return res.status(400).json({ error: "Você tem que estar autenticado" });
+    }
+    if (!storeId) {
+      return res
+        .status(400)
+        .json({ error: "Você tem que estar autenticado na loja" });
     }
 
     const data: CreateProductDTO = req.body;
@@ -67,7 +73,8 @@ class ProductController {
         },
         ownerId,
         photos,
-        categoryId
+        categoryId,
+        storeId
       );
 
       return res.status(201).json(product);
@@ -79,7 +86,7 @@ class ProductController {
 
   async update(req: Request, res: Response): Promise<Response> {
     const data: UpdateProductDTO = req.body;
-    const id = parseInt(req.params.id, 10);
+    const id = req.params.id;
 
     if (!data || Object.keys(data).length === 0) {
       return res.status(400).json({

@@ -8,6 +8,11 @@ const REFRESH_SECRET =
 export interface TokenPayload {
   userId: string;
   email?: string;
+  role?: string;
+  storeId?: string;
+  planType?: string;
+  tenantId?: string;
+  subscriptionStatus?: string;
 }
 
 export const signAccessToken = (payload: TokenPayload): string => {

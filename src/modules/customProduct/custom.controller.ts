@@ -30,7 +30,7 @@ export class CustomProductController {
     req: Request,
     res: Response
   ): Promise<void> => {
-    const id = parseInt(req.params.id, 10);
+    const id = req.params.id;
     try {
       const customProduct =
         await this.customProductService.getCustomizationProductById(id);
@@ -50,7 +50,7 @@ export class CustomProductController {
     req: Request,
     res: Response
   ): Promise<void> => {
-    const id = parseInt(req.params.id, 10);
+    const id = req.params.id;
     const data: CustomizationOptionDTOCreate = req.body;
     try {
       const customProduct =

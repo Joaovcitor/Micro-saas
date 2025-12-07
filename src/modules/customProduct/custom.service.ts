@@ -28,7 +28,7 @@ export class CustomProductService {
     return customProducts;
   }
   async getCustomizationProductById(
-    id: number
+    id: string
   ): Promise<ProductCustomization[]> {
     if (!id) {
       throw new Error("Id inválido!");
@@ -45,7 +45,7 @@ export class CustomProductService {
     return customProduct;
   }
   async addNewOptionInProduct(
-    id: number,
+    id: string,
     data: CustomizationOptionDTOCreate
   ): Promise<CustomizationOption> {
     const newOption = await prisma.customizationOption.create({

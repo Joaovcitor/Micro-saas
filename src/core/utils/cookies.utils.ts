@@ -30,7 +30,7 @@ export const cookieConfig: CookieConfig = {
     userId: "userId",
   },
   expiration: {
-    accessToken: 15 * 60 * 1000,
+    accessToken: 60 * 60 * 1000 * 24,
     refreshToken: 7 * 24 * 60 * 60 * 1000,
   },
   defaultOptions: {

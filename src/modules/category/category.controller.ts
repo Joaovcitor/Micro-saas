@@ -17,7 +17,7 @@ class CategoryController {
     const data: CategoryUpdateDTO = req.body;
     try {
       const { id } = req.params;
-      const category = await categoryService.update(data, Number(id));
+      const category = await categoryService.update(data, id);
       return res.status(200).json(category);
     } catch (error: any) {
       return res.status(400).json({ message: error.message });
@@ -36,7 +36,7 @@ class CategoryController {
   async getCategoryById(req: Request, res: Response): Promise<Response> {
     try {
       const { id } = req.params;
-      const category = await categoryService.getById(Number(id));
+      const category = await categoryService.getById(id);
       return res.status(200).json(category);
     } catch (error: any) {
       return res.status(400).json({ message: error.message });
@@ -49,7 +49,7 @@ class CategoryController {
   ): Promise<Response> {
     try {
       const { id } = req.params;
-      const category = await categoryService.productsWithCategory(Number(id));
+      const category = await categoryService.productsWithCategory(id);
       return res.status(200).json(category);
     } catch (error: any) {
       return res.status(400).json({ message: error.message });

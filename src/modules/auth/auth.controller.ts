@@ -57,8 +57,8 @@ export class AuthController {
         cookies.accessToken
       );
       const user = await prisma.user.findUnique({
-        where: { id: parseInt(payload.userId) },
-        select: { id: true, email: true, name: true, role: true },
+        where: { id: payload.userId },
+        select: { id: true, email: true, name: true, role: true, store: true },
       });
 
       if (!user) {

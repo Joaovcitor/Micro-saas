@@ -13,6 +13,13 @@ import path from "path";
 import customProductRouter from "./modules/customProduct/custom.routes";
 import checkoutRouter from "./modules/checkout/checkout.routes";
 import { WebhookRoute } from "./modules/webhooks/webhooks.routes";
+
+// Novas importações para SaaS
+import subscriptionRoutes from "./modules/subscription/subscription.routes";
+import tenantRoutes from "./modules/tenant/tenant.routes";
+import stripeConnectRoutes from "./modules/stripeConnect/stripeConnect.routes";
+import { identifyTenant, requireActiveSubscription } from "./modules/tenant/tenant.middleware";
+
 dotenv.config();
 
 class Server {
@@ -67,16 +74,29 @@ class Server {
       )
     );
     this.app.use(cookieMiddleware);
+
+    // Middleware de identificação de tenant (aplicado globalmente)
+    this.app.use(identifyTenant);
   }
 
   private routes(): void {
+    // Rotas públicas (sem necessidade de tenant ativo)
     this.app.use("/auth", authRoutes);
-    this.app.use("/users", userRouter);
-    this.app.use("/products", productRoutes);
-    this.app.use("/category", categoryRouter);
-    this.app.use("/custom", customProductRouter);
-    this.app.use("/orders", orderRouter);
-    this.app.use("/checkout", checkoutRouter);
+    this.app.use("/subscriptions", subscriptionRoutes);
+    
+    // Rotas de tenant (para gerenciamento de lojas)
+    this.app.use("/tenants", tenantRoutes);
+    
+    // Rotas que requerem assinatura ativa
+    this.app.use("/users", requireActiveSubscription, userRouter);
+    this.app.use("/products", requireActiveSubscription, productRoutes);
+    this.app.use("/category", requireActiveSubscription, categoryRouter);
+    this.app.use("/custom", requireActiveSubscription, customProductRouter);
+    this.app.use("/orders", requireActiveSubscription, orderRouter);
+    this.app.use("/checkout", requireActiveSubscription, checkoutRouter);
+    
+    // Rotas do Stripe Connect (para lojas com contas conectadas)
+    this.app.use("/stripe-connect", requireActiveSubscription, stripeConnectRoutes);
   }
 
   private webhook(): void {
@@ -92,6 +112,7 @@ class Server {
       console.log(
         `🔗 Frontend: ${process.env.FRONTEND_URL || "http://localhost:3000"}`
       );
+      console.log(`📊 Sistema SaaS Multi-tenant ativo`);
     });
   }
 }

@@ -13,7 +13,7 @@ class ProductService {
     return products;
   }
 
-  async getProductById(id: number): Promise<Product | null> {
+  async getProductById(id: string): Promise<Product | null> {
     return await prisma.product.findUnique({
       where: { id },
       include: {
@@ -25,9 +25,10 @@ class ProductService {
 
   async create(
     data: CreateProductDTO,
-    ownerId: number,
+    ownerId: string,
     photos: string[],
-    categoryId: number
+    categoryId: string,
+    storeId: string
   ) {
     if (data.type === "PHYSICAL" && data.stock === null) {
       throw new Error("Produto do tipo físico deve ter estoque!");
@@ -45,6 +46,9 @@ class ProductService {
         category: {
           connect: { id: categoryId },
         },
+        store: {
+          connect: { id: storeId },
+        },
       },
       include: {
         photos: true,
@@ -52,7 +56,7 @@ class ProductService {
     });
   }
 
-  async update(id: number, data: UpdateProductDTO): Promise<Product> {
+  async update(id: string, data: UpdateProductDTO): Promise<Product> {
     if (!id) {
       throw new Error("Id inválido!");
     }

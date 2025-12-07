@@ -1,5 +1,5 @@
 export type ProductCustomizationDTOCreate = {
-  productId: number;
+  productId: string;
   name: string;
   description: string;
   isRequired: boolean;
@@ -9,7 +9,7 @@ export type ProductCustomizationDTOCreate = {
 };
 
 export type CustomizationOptionDTOCreate = {
-  customizationId: number;
+  customizationId: string;
   name: string;
   description: string;
   price: number;
@@ -20,9 +20,9 @@ export type CustomizationOptionDTOCreate = {
 };
 
 export type OrderItemCustomizationDTOCreate = {
-  orderItemId: number;
-  customizationId: number;
-  optionId: number;
+  orderItemId: string;
+  customizationId: string;
+  optionId: string;
   quantity: number;
   price: number;
   name: string;

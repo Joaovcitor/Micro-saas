@@ -2,7 +2,7 @@ export type CreateProductDTO = {
   name: string;
   description: string;
   price: number;
-  stock: number;
+  stock?: number;
   type: string;
   photos: string[];
 };

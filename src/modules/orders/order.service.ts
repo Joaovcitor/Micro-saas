@@ -10,30 +10,56 @@ import type {
 } from "./order.dto";
 
 class OrderService {
-  async getAllOrders(): Promise<OrderResponseDto[]> {
-    const orders = await prisma.order.findMany({
-      include: {
-        orderItems: {
-          include: {
-            product: {
-              select: {
-                name: true,
-                category: true,
+  async getAllOrders(
+    page: number,
+    limit: number = 50,
+    startDate: Date,
+    endDate: Date
+  ): Promise<{ data: OrderResponseDto[]; meta: any }> {
+    const [orders, total] = await Promise.all([
+      prisma.order.findMany({
+        where: {
+          createdAt: {
+            gte: new Date(startDate),
+            lt: new Date(endDate),
+          },
+        },
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: {
+          createdAt: "asc",
+        },
+        include: {
+          orderItems: {
+            include: {
+              product: {
+                select: {
+                  name: true,
+                  category: true,
+                },
               },
             },
           },
-        },
-        user: {
-          select: {
-            name: true,
-            email: true,
+          user: {
+            select: {
+              name: true,
+              email: true,
+            },
           },
         },
+      }),
+      prisma.order.count(),
+    ]);
+    return {
+      data: orders.map((order) => this.formatOrderResponse(order)),
+      meta: {
+        total,
+        page,
+        limit,
       },
-    });
-    return orders.map((order) => this.formatOrderResponse(order));
+    };
   }
-  async getOrderById(orderId: number): Promise<OrderResponseDto> {
+  async getOrderById(orderId: string): Promise<OrderResponseDto> {
     const order = await prisma.order.findUnique({
       where: {
         id: orderId,
@@ -48,6 +74,12 @@ class OrderService {
             },
           },
         },
+        user: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
       },
     });
     if (!order) {
@@ -56,7 +88,7 @@ class OrderService {
     return this.formatOrderResponse(order);
   }
   async createOrder(
-    userId: number,
+    userId: string,
     createOrderDto: CreateOrderDto
   ): Promise<OrderResponseDto> {
     return await prisma.$transaction(async (prisma) => {
@@ -85,6 +117,7 @@ class OrderService {
           userId: userId,
           status: "EM_PREPARO",
           totalPrice: total,
+          storeId: createOrderDto.storeId,
           enderecoEntrega: createOrderDto.enderecoEntrega,
           metodoPagamento: createOrderDto.metodoPagamento as MetodoPagamento,
           orderItems: {
@@ -138,43 +171,64 @@ class OrderService {
     });
   }
 
-  async ordersOfUser(userId: number): Promise<OrderResponseDto[]> {
+  async ordersOfUser(
+    page: number,
+    userId: string,
+    limit: number = 10
+  ): Promise<{ data: OrderResponseDto[]; meta: any }> {
     if (!userId) {
       throw new Error("Usuário não autenticado");
     }
+    const skip = (page - 1) * limit;
 
-    const orders = await prisma.order.findMany({
-      where: {
-        userId: userId,
-      },
-      include: {
-        orderItems: {
-          include: {
-            product: {
-              select: {
-                id: true,
-                name: true,
-                price: true,
+    const [orders, total] = await Promise.all([
+      prisma.order.findMany({
+        where: {
+          userId: userId,
+        },
+        skip,
+        take: limit,
+        orderBy: {
+          createdAt: "desc",
+        },
+        include: {
+          orderItems: {
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                  price: true,
+                },
               },
             },
           },
-          orderBy: {
-            createdAt: "desc",
+          user: {
+            select: {
+              name: true,
+              email: true,
+            },
           },
         },
-        user: {
-          select: {
-            name: true,
-            email: true,
-          },
+      }),
+      prisma.order.count({
+        where: {
+          userId: userId,
         },
-      },
-    });
+      }),
+    ]);
 
-    return orders.map((order) => this.formatOrderResponse(order));
+    return {
+      data: orders.map((order) => this.formatOrderResponse(order)),
+      meta: {
+        total,
+        lastPage: Math.ceil(total / limit),
+        page,
+      },
+    };
   }
 
-  async updateOrderStatus(orderId: number, status: UpdateOrderStatusDto) {
+  async updateOrderStatus(orderId: string, status: UpdateOrderStatusDto) {
     if (!orderId) {
       throw new Error("Id do pedido inválido");
     }
@@ -213,7 +267,7 @@ class OrderService {
     return { validItems, total };
   }
 
-  private async updateProduct(id: number, stock: number) {
+  private async updateProduct(id: string, stock: number) {
     await prisma.product.update({
       where: { id },
       data: {

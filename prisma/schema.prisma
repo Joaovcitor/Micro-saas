@@ -8,137 +8,188 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Store {
+  id          String       @id @default(uuid())
+  name        String
+  subdomain   String?   @unique
+  customDomain String?  @unique // Para planos premium
+  owner       User      @relation("OwnerOfStore", fields: [ownerId], references: [id])
+  ownerId     String       @unique
+  
+  products    Product[]
+  categories  Category[]
+  orders      Order[]
+  customers   User[]    @relation("CustomersOfStore")
+  subscription Subscription?
+  theme       StoreTheme?
+  
+  // Configurações da loja
+  isActive    Boolean   @default(true)
+  setupCompleted Boolean @default(false)
+  
+  // Stripe Connect - Conta da loja para receber pagamentos
+  stripeAccountId String? @unique // ID da conta conectada no Stripe
+  stripeAccountStatus String? // restricted, pending, enabled
+  payoutsEnabled Boolean @default(false) // Se pode receber transferências
+  chargesEnabled Boolean @default(false) // Se pode processar pagamentos
+  
+  // Configurações de pagamento
+  paymentMethods Json? // Métodos aceitos: card, pix, boleto
+  
+  // Relacionamentos
+  usage       PlanUsage[]
+  payouts     StorePayout[] // Histórico de transferências
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
 model User {
-  id Int @id @default(autoincrement())
-  name String
-  email String @unique
-  password String
-  role Role @default(USER)
-  products Product[]
-  orders Order[]
-  refreshToken String? 
-  stripeCustomerId String? @unique
-  stripeSubscriptionId String? @unique
-  stripeSubscriptionStatus String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id               String    @id @default(uuid())
+  name             String
+  email            String    @unique
+  password         String
+  role             Role      @default(USER)
+  products         Product[]
+  ownedStore       Store?    @relation("OwnerOfStore")
+  store            Store?    @relation("CustomersOfStore", fields: [storeId], references: [id])
+  storeId          String?
+  orders           Order[]
+  refreshToken     String?
+  stripeCustomerId String?   @unique
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 }
 
 model Product {
-  id Int @id @default(autoincrement())
-  name String
-  description String
-  price Float
-  owner User @relation(fields: [ownerId], references: [id])
-  ownerId Int
-  photos Photo[]
-  category Category @relation(fields: [categoryId], references: [id])
-  orderItems OrderItem[]
+  id                    String                 @id @default(uuid())
+  name                  String
+  description           String
+  price                 Float
+  owner                 User                   @relation(fields: [ownerId], references: [id])
+  ownerId               String
+  photos                Photo[]
+  category              Category               @relation(fields: [categoryId], references: [id])
+  orderItems            OrderItem[]
   productCustomizations ProductCustomization[]
-  categoryId Int
-  isAvailable Boolean @default(true)
-  stock Int?
-  type ProductType @default(PHYSICAL)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  categoryId            String
+  isAvailable           Boolean                @default(true)
+  stock                 Int?
+  type                  ProductType            @default(PHYSICAL)
+  store                 Store                  @relation(fields: [storeId], references: [id])
+  storeId               String
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
 }
 
 model Photo {
-  id Int @id @default(autoincrement())
-  url String
-  product Product @relation(fields: [productId], references: [id])
-  productId Int
+  id        String   @id @default(uuid())
+  url       String
+  product   Product  @relation(fields: [productId], references: [id])
+  productId String
   createdAt DateTime @default(now())
 }
 
 model Category {
-  id Int @id @default(autoincrement())
-  name String
-  products Product[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        String    @id @default(uuid())
+  name      String
+  products  Product[]
+  store     Store     @relation(fields: [storeId], references: [id])
+  storeId   String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }
 
 model Order {
-  id Int @id @default(autoincrement())
-  user User @relation(fields: [userId], references: [id])
-  userId Int
-  orderItems OrderItem[]
-  totalPrice Float
-  status StatusPedido @default(EM_PREPARO)
+  id              String          @id @default(uuid())
+  user            User            @relation(fields: [userId], references: [id])
+  userId          String
+  orderItems      OrderItem[]
+  totalPrice      Float
+  status          StatusPedido    @default(EM_PREPARO)
   enderecoEntrega String?
   metodoPagamento MetodoPagamento @default(PIX)
-  paymentStatus PaymentStatus @default(PENDING)
-  paymentIntentId String? @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  paymentStatus   PaymentStatus   @default(PENDING)
+  paymentIntentId String?         @unique
+  store           Store           @relation(fields: [storeId], references: [id])
+  storeId         String
+  
+  // Stripe Transfer
+  stripeTransferId String? // ID da transferência para a loja
+  
+  // Taxas e comissões
+  platformFee Float? // Taxa da plataforma (%)
+  platformFeeAmount Float? // Valor da taxa em reais
+  storeAmount Float? // Valor que vai para a loja
+  
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 }
 
 model OrderItem {
-  id Int @id @default(autoincrement())
-  orderId Int
-  order Order @relation(fields: [orderId], references: [id])
-  product Product @relation(fields: [productId], references: [id])
-  productId Int
-  quantity Int @default(1)
-  subtotal Float @default(0)
-  price Float @default(0)
+  id             String                   @id @default(uuid())
+  orderId        String
+  order          Order                    @relation(fields: [orderId], references: [id])
+  product        Product                  @relation(fields: [productId], references: [id])
+  productId      String
+  quantity       Int                      @default(1)
+  subtotal       Float                    @default(0)
+  price          Float                    @default(0)
   customizations OrderItemCustomization[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
 }
 
-
 model Discount {
-  id Int @id @default(autoincrement())
-  name String
-  type DiscountType @default(PERCENTAGE)
-  value Float
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        String       @id @default(uuid())
+  name      String
+  type      DiscountType @default(PERCENTAGE)
+  value     Float
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
 }
 
 model ProductCustomization {
-  id Int @id @default(autoincrement())
-  product Product @relation(fields: [productId], references: [id])
-  productId Int
-  name String
+  id          String                @id @default(uuid())
+  product     Product               @relation(fields: [productId], references: [id])
+  productId   String
+  name        String
   description String?
-  isRequired Boolean @default(false)
-  minOptions Int @default(0)
-  maxOptions Int @default(5)
-  options CustomizationOption[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  isRequired  Boolean               @default(false)
+  minOptions  Int                   @default(0)
+  maxOptions  Int                   @default(5)
+  options     CustomizationOption[]
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
 }
 
 model CustomizationOption {
-  id          Int       @id @default(autoincrement())
-  customization ProductCustomization @relation(fields: [customizationId], references: [id])
-  customizationId Int
-  name        String 
-  description String?
-  price       Float     @default(0)
-  isAvailable Boolean   @default(true)
-  maxQuantity Int       @default(1)
-  order       Int       @default(0)
+  id                     String                   @id @default(uuid())
+  customization          ProductCustomization     @relation(fields: [customizationId], references: [id])
+  customizationId        String
+  name                   String
+  description            String?
+  price                  Float                    @default(0)
+  isAvailable            Boolean                  @default(true)
+  maxQuantity            Int                      @default(1)
+  order                  Int                      @default(0)
   orderItemCustomization OrderItemCustomization[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
 
   @@map("customization_options")
 }
 
 model OrderItemCustomization {
-  id          Int       @id @default(autoincrement())
-  orderItem   OrderItem @relation(fields: [orderItemId], references: [id])
-  orderItemId Int
+  id          String              @id @default(uuid())
+  orderItem   OrderItem           @relation(fields: [orderItemId], references: [id])
+  orderItemId String
   option      CustomizationOption @relation(fields: [optionId], references: [id])
-  optionId    Int
-  quantity    Int       @default(1)
+  optionId    String
+  quantity    Int                 @default(1)
   price       Float
-  name        String   
-  createdAt   DateTime  @default(now())
+  name        String
+  createdAt   DateTime            @default(now())
 
   @@map("order_item_customizations")
 }
@@ -149,15 +200,19 @@ enum DiscountType {
   PERCENTAGE
   FIXED
 }
+
 enum Role {
   USER
+  OWNER
   ADMIN
 }
+
 enum ProductType {
   PHYSICAL
   SERVICE
   MADE_TO_ORDER
 }
+
 enum StatusPedido {
   EM_PREPARO
   PRONTO
@@ -180,4 +235,202 @@ enum PaymentStatus {
   FAILED
   REFUNDED
   CANCELED
+}
+
+// NOVOS MODELOS PARA SISTEMA DE ASSINATURA
+
+model SubscriptionPlan {
+  id       String       @id @default(uuid())
+  name     String // "Básico Mensal", "Premium Anual", etc.
+  type     PlanType // BASIC, PREMIUM
+  price    Float // Preço em reais
+  interval PlanInterval // MONTHLY, QUARTERLY, YEARLY
+
+  // Features do plano (JSON para flexibilidade)
+  features Json // { "maxProducts": 100, "customTheme": false, etc. }
+
+  // Limites específicos
+  maxProducts Int? // null = ilimitado
+  maxOrders   Int? // Limite de pedidos por mês
+  maxStorage  Int? // Limite de storage em MB
+
+  // Features booleanas
+  customTheme     Boolean @default(false) // Permite personalização de tema
+  customDomain    Boolean @default(false) // Permite domínio próprio
+  analytics       Boolean @default(false) // Acesso a analytics avançados
+  prioritySupport Boolean @default(false) // Suporte prioritário
+
+  // Stripe
+  stripePriceId String? @unique // ID do preço no Stripe
+
+  // Relacionamentos
+  subscriptions Subscription[]
+
+  // Status
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Subscription {
+  id String @id @default(uuid())
+
+  // Relacionamentos
+  store   Store            @relation(fields: [storeId], references: [id])
+  storeId String           @unique
+  plan    SubscriptionPlan @relation(fields: [planId], references: [id])
+  planId  String
+
+  // Stripe Integration
+  stripeSubscriptionId String? @unique
+  stripeCustomerId     String?
+  stripePriceId        String?
+  stripeSessionId      String? // ID da sessão de checkout
+
+  // Status e Datas
+  status             SubscriptionStatus @default(TRIALING)
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd  Boolean            @default(false)
+  canceledAt         DateTime?
+  trialEnd           DateTime?
+
+  // Billing
+  lastPaymentDate    DateTime?
+  nextPaymentDate    DateTime?
+  failedPaymentCount Int       @default(0)
+
+  // Metadata
+  metadata Json? // Dados extras se necessário
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model StoreTheme {
+  id String @id @default(uuid())
+
+  // Relacionamento
+  store   Store  @relation(fields: [storeId], references: [id])
+  storeId String @unique
+
+  // Configurações Básicas (disponível em todos os planos)
+  primaryColor    String? @default("#3B82F6")
+  secondaryColor  String? @default("#1F2937")
+  accentColor     String? @default("#F59E0B")
+  backgroundColor String? @default("#FFFFFF")
+  textColor       String? @default("#1F2937")
+
+  // Branding
+  logoUrl    String?
+  faviconUrl String?
+  fontFamily String? @default("Inter")
+
+  // Layout Básico
+  headerStyle   Json? // Configurações do header
+  footerStyle   Json? // Configurações do footer
+  productLayout String? @default("grid") // grid, list, masonry
+
+  // Customizações Avançadas (apenas Premium)
+  customCSS  String? // CSS customizado
+  customJS   String? // JavaScript customizado
+  pageBlocks Json? // Blocos de página personalizados
+
+  // Templates
+  templateId String? @default("basic") // ID do template aplicado
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PlanUsage {
+  id String @id @default(uuid())
+
+  // Relacionamento
+  store   Store  @relation(fields: [storeId], references: [id])
+  storeId String
+
+  // Contadores do mês atual
+  month Int // Mês (1-12)
+  year  Int // Ano
+
+  // Uso atual
+  productsCount Int @default(0)
+  ordersCount   Int @default(0)
+  storageUsed   Int @default(0) // Em MB
+
+  // Limites do plano (cache para performance)
+  productsLimit Int? // null = ilimitado
+  ordersLimit   Int?
+  storageLimit  Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([storeId, month, year])
+}
+
+// NOVOS ENUMS
+
+enum PlanType {
+  BASIC
+  PREMIUM
+}
+
+enum PlanInterval {
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum SubscriptionStatus {
+  TRIALING      // Período de teste
+  ACTIVE        // Ativa e paga
+  PAST_DUE      // Pagamento em atraso
+  CANCELED      // Cancelada
+  INCOMPLETE    // Pagamento incompleto
+  INCOMPLETE_EXPIRED // Pagamento expirado
+  UNPAID        // Não paga
+}
+
+// NOVO MODELO PARA CONTROLE DE TRANSFERÊNCIAS
+
+model StorePayout {
+  id          String    @id @default(uuid())
+  
+  // Relacionamento
+  store       Store     @relation(fields: [storeId], references: [id])
+  storeId     String
+  
+  // Stripe Payout
+  stripePayoutId String? @unique
+  stripeTransferId String? // ID da transferência original
+  
+  // Valores
+  amount      Float     // Valor bruto das vendas
+  platformFee Float     // Taxa da plataforma
+  netAmount   Float     // Valor líquido transferido
+  
+  // Status
+  status      PayoutStatus @default(PENDING)
+  
+  // Período
+  periodStart DateTime  // Início do período
+  periodEnd   DateTime  // Fim do período
+  
+  // Metadados
+  ordersCount Int       // Quantidade de pedidos no período
+  description String?   // Descrição da transferência
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+enum PayoutStatus {
+  PENDING     // Aguardando processamento
+  PROCESSING  // Em processamento
+  PAID        // Pago
+  FAILED      // Falhou
+  CANCELED    // Cancelado
 }

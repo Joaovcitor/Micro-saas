@@ -1,4 +1,5 @@
 export type CreateOrderDto = {
+  storeId: string;
   enderecoEntrega?: string;
   metodoPagamento: string;
   items: OrderItemDto[];
@@ -6,27 +7,27 @@ export type CreateOrderDto = {
 };
 
 export type OrderItemCustomizationDTOCreate = {
-  orderItemId: number;
-  customizationId: number;
-  optionId: number;
+  orderItemId: string;
+  customizationId: string;
+  optionId: string;
   quantity: number;
   price: number;
   name: string;
 };
 
 export type OrderCustomizationDto = {
-  optionId: number;
+  optionId: string;
   value: number;
 };
 
 export type OrderItemDto = {
-  productId: number;
+  productId: string;
   quantity: number;
   customizations?: OrderCustomizationItems[];
 };
 
 export type OrderCustomizationItems = {
-  optionId: number;
+  optionId: string;
   value: number;
   name: string;
   price: number;
@@ -34,8 +35,8 @@ export type OrderCustomizationItems = {
 };
 
 export type OrderResponseDto = {
-  id: number;
-  userId: number;
+  id: string;
+  userId: string;
   status: string;
   orderItems: OrderItemResponseDto[];
   metodoPagamento: string;
@@ -49,8 +50,8 @@ export type OrderResponseDto = {
 };
 
 export type OrderItemResponseDto = {
-  id: number;
-  productId: number;
+  id: string;
+  productId: string;
   productName: string;
   quantity: number;
   price: number;

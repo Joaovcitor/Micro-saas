@@ -15,7 +15,7 @@ class OrderController {
   getOrderById = async (req: Request, res: Response): Promise<void> => {
     const id = req.params.id;
     try {
-      const order = await this.orderService.getOrderById(Number(id));
+      const order = await this.orderService.getOrderById(id);
       res.status(200).json({
         message: "Pedido encontrado com sucesso",
         data: order,
@@ -30,7 +30,20 @@ class OrderController {
   };
   getAllOrders = async (req: Request, res: Response): Promise<void> => {
     try {
-      const orders = await this.orderService.getAllOrders();
+      const page = Number(req.query.page) || 1;
+      const limit = Number(req.query.limit) || 10;
+      const startDate = req.query.startDate
+        ? new Date(req.query.startDate as string)
+        : null;
+      const endDate = req.query.endDate
+        ? new Date(req.query.endDate as string)
+        : null;
+      const orders = await this.orderService.getAllOrders(
+        page,
+        limit,
+        startDate ?? new Date(0),
+        endDate ?? new Date()
+      );
       res.status(200).json({
         message: "Pedidos encontrados com sucesso",
         data: orders,
@@ -46,7 +59,15 @@ class OrderController {
   getAllOrdersOfUser = async (req: Request, res: Response): Promise<void> => {
     try {
       const userId = req.user?.userId;
-      const orders = await this.orderService.ordersOfUser(Number(userId));
+      const page = Number(req.query.page) || 1;
+      const limit = Number(req.query.limit) || 10;
+      if (!userId) {
+        res.status(401).json({
+          message: "Usuário não autenticado",
+        });
+        return;
+      }
+      const orders = await this.orderService.ordersOfUser(page, userId, limit);
       res.status(200).json({
         message: "Pedidos encontrados com sucesso",
         data: orders,
@@ -60,7 +81,7 @@ class OrderController {
     }
   };
   updateOrder = async (req: Request, res: Response): Promise<void> => {
-    const id = parseInt(req.params.id);
+    const id = req.params.id;
     const updateOrderStatusDto: UpdateOrderStatusDto = req.body;
     try {
       const order = await this.orderService.updateOrderStatus(
@@ -100,7 +121,7 @@ class OrderController {
       }
 
       const order: OrderResponseDto = await this.orderService.createOrder(
-        Number(userId),
+        userId,
         createOrderDto
       );
 

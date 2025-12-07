@@ -1,11 +1,13 @@
-import express from "express";
-import { CookieOptions } from "../../core/utils/cookies.utils";
+import express, { CookieOptions } from "express";
 
 declare global {
   namespace Express {
     interface UserPayload {
       userId: string;
       email?: string;
+      role?: string;
+      storeId?: string;
+      planType?: string;
     }
 
     interface Request {

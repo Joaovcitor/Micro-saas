@@ -7,6 +7,7 @@ class CategoryService {
     const existCategory = await prisma.category.findFirst({
       where: {
         name: data.name,
+        storeId: data.storeId,
       },
     });
     if (existCategory) {
@@ -17,14 +18,14 @@ class CategoryService {
     });
   }
 
-  async update(data: CategoryUpdateDTO, id: number): Promise<Category> {
+  async update(data: CategoryUpdateDTO, id: string): Promise<Category> {
     const existCategory = await prisma.category.findFirst({
       where: {
-        name: data.name,
+        id: id,
       },
     });
-    if (existCategory) {
-      throw new Error("Categoria com esse nome já cadastrada!");
+    if (!existCategory) {
+      throw new Error("Categoria com esse id não cadastrada!");
     }
     return prisma.category.update({ where: { id }, data: { name: data.name } });
   }
@@ -37,7 +38,7 @@ class CategoryService {
     });
   }
 
-  async getById(id: number): Promise<Category> {
+  async getById(id: string): Promise<Category> {
     if (!id) {
       throw new Error("Id inválido!");
     }
@@ -52,7 +53,7 @@ class CategoryService {
     return category;
   }
 
-  async productsWithCategory(id: number): Promise<Category> {
+  async productsWithCategory(id: string): Promise<Category> {
     const category = await prisma.category.findUnique({
       where: {
         id,

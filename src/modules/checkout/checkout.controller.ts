@@ -8,7 +8,7 @@ class CheckoutController {
       const userId = req.user?.userId;
       const user = await prisma.user.findUnique({
         where: {
-          id: Number(userId),
+          id: userId,
         },
       });
       if (!user) {

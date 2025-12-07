@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { CustomProductController } from "./custom.controller";
-import { authMiddleware } from "../../core/middlewares/authMiddlware";
+import { authMiddleware } from "../../core/middlewares/authMiddleware";
 
 const customProductRouter = Router();
 const customProductController = new CustomProductController();
